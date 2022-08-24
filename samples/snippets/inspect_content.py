@@ -16,6 +16,8 @@
 local file or a file on Google Cloud Storage."""
 
 from __future__ import print_function
+from google.privacy.dlp.v2 import dlp_pb2
+from google.privacy.dlp.v2 import storage_pb2
 
 import argparse
 import json
@@ -46,24 +48,36 @@ def inspect_string_basic(
 
     # Prepare info_types by converting the list of strings into a list of
     # dictionaries (protos are also accepted).
-    info_types = [{"name": info_type} for info_type in info_types]
+    #info_types = [{"name": info_type} for info_type in info_types]
+
+    info_type_protos = [
+        storage_pb2.InfoType(name=info_type) for info_type in info_types
+    ]
 
     # Construct the configuration dictionary.
-    inspect_config = {
-        "info_types": info_types,
-        "include_quote": True,
-    }
+    inspect_config = dlp_pb2.InspectConfig(
+        include_quote= True,
+        info_types=info_type_protos
+    )
+    #inspect_config = {
+    #    "info_types": info_types,
+#    "include_quote": True,
+ #   }
 
     # Construct the `item`.
-    item = {"value": content_string}
+    item = dlp_pb2.ContentItem(value=content_string)# {"value": content_string}
 
     # Convert the project id into a full resource id.
     parent = f"projects/{project}"
 
-    # Call the API.
-    response = dlp.inspect_content(
-        request={"parent": parent, "inspect_config": inspect_config, "item": item}
+    request = dlp_pb2.InspectContentRequest(
+        inspect_config=inspect_config,
+        item=item,
+        parent=parent
     )
+
+    # Call the API.
+    response = dlp.inspect_content(request)
 
     # Print out the results.
     if response.result.findings:
